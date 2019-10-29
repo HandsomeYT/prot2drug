@@ -7,7 +7,7 @@ import torch.utils.data as data
 from torch.autograd import Variable
 import torch.optim as optim
 from torchsummary import summary
-from sklearn.metrics import r2_score
+from sklearn.metrics import mean_squared_error
 import math
 import time
 import os
@@ -78,7 +78,7 @@ data_test = data.TensorDataset(test_X,test_Y)
 dataset_test =data.DataLoader(dataset=data_test, batch_size=256, shuffle=True, num_workers=2)
 
 data_train = data.TensorDataset(train_X, train_Y)
-dataset_train = data.DataLoader(dataset=data_train, batch_size=1, shuffle=False, num_workers=0) 
+dataset_train = data.DataLoader(dataset=data_train, batch_size=256, shuffle=True, num_workers=2) 
 '''
 data1 = data.TensorDataset(XD,Y)
 data2 = data.TensorDataset(XT,Y)
@@ -189,8 +189,8 @@ outputs_list = []
 for epoch in range(50):
     avg_loss = 0
     avg_ci = 0
-    
-    for i,data in enumerate(dataset_test):
+  
+    for i,data in enumerate(dataset_train):
 
         inputX, y = data
         inputD = inputX[:,0:85].to(device)
@@ -228,7 +228,8 @@ for epoch in range(50):
 
     #loss = criterion(torch.from_numpy(np.array(outputs_list)).type(torch.FloatTensor), test_Y.type(torch.FloatTensor).to(device))
     cindex = get_cindex(list(test_Y),outputs_list)
-    print("test_CI:", cindex)
+    mse = mean_squared_error(list(test_Y),outputs_list)
+    print("test_MSE:", mse,"test_CI:", cindex)
     outputs_list = []
 
 
