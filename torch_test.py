@@ -33,6 +33,9 @@ def prepare_interaction_pairs(XD, XT,  Y, rows, cols):
 
     return drug_data,target_data,  affinity
 
+def forfor(a): 
+    return [item for sublist in a for item in sublist] 
+
 FLAGS = argparser()
 FLAGS.log_dir = FLAGS.log_dir + str(time.time()) + "/"
 '''
@@ -52,7 +55,7 @@ XD = np.asarray(XD)
 XT = np.asarray(XT)
 Y = np.asarray(Y)
 label_row_inds, label_col_inds = np.where(np.isnan(Y)==False)
-XD, XT, Y = prepare_interaction_pairs(XD,XT,Y,label_row_inds,label_col_inds)
+#XD, XT, Y = prepare_interaction_pairs(XD,XT,Y,label_row_inds,label_col_inds)
 
 '''
 XD = np.repeat(XD,442,axis=0)
@@ -60,22 +63,34 @@ XT = np.tile(XT,(68,1))
 '''
 Y = -(np.log10(np.array(Y)/(math.pow(10,9))))
 
+test_fold, train_fold = dataset.read_sets(FLAGS)
 
-XD = torch.from_numpy(XD)
-XT = torch.from_numpy(XT)
-Y = torch.from_numpy(np.asarray(Y))
+#train set
+train_rows = label_row_inds[forfor(train_fold[0:4])]
+train_cols = label_col_inds[forfor(train_fold[0:4])]
+train_drugs, train_prots,  train_Y = prepare_interaction_pairs(XD, XT, Y, train_rows, train_cols)
+train_drugs = np.array(train_drugs)
+train_prots = np.array(train_prots)
+train_X = torch.from_numpy(np.hstack((train_drugs,train_prots)))
+train_Y = torch.from_numpy(np.array(train_Y))
+#test set
+test_rows = label_row_inds[test_fold]
+test_cols = label_col_inds[test_fold]
+test_drugs, test_prots,  test_Y = prepare_interaction_pairs(XD, XT, Y, test_rows, test_cols)
+test_drugs = np.array(test_drugs)
+test_prots = np.array(test_prots)
+test_X = torch.from_numpy(np.hstack((test_drugs,test_prots)))
+test_Y = torch.from_numpy(np.array(test_Y))
 
+#print(train_X.shape, test_X.shape)
+'''
 X = torch.from_numpy(np.hstack((XD,XT)))
 
-train_X = X[0:24045]
-train_Y = Y[0:24045]
-test_X = X[24045:30056]
-test_Y = Y[24045:30056]
-
-print(train_X.shape, train_Y.shape)
-print(test_X.shape, test_Y.shape)
-data_test = data.TensorDataset(test_X,test_Y)
-dataset_test =data.DataLoader(dataset=data_test, batch_size=256, shuffle=True, num_workers=2)
+train_X = X[0:21000]
+train_Y = Y[0:21000]
+test_X = X[25045:30056]
+test_Y = Y[25045:30056]
+'''
 
 data_train = data.TensorDataset(train_X, train_Y)
 dataset_train = data.DataLoader(dataset=data_train, batch_size=256, shuffle=True, num_workers=2) 
@@ -171,6 +186,7 @@ class Net(nn.Module):
         out = self.relu(self.fc2(out))
         out = F.dropout(out,p=0.1)
         out = self.relu(self.fc3(out))
+        #out = F.dropout(out,p=0.1)
         
         out = self.fc4(out)
 
@@ -186,7 +202,7 @@ loss_list = []
 ci_list =[]
 outputs_list = []
 
-for epoch in range(50):
+for epoch in range(100):
     avg_loss = 0
     avg_ci = 0
   
